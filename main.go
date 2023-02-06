@@ -12,7 +12,17 @@ type Rule struct {
 	Productions []string
 }
 
-type AF map[string]map[string][]string
+type Beam struct {
+	Simbol string
+	State  string
+}
+
+type State struct {
+	Name       string
+	Production []Beam
+}
+
+type AF []State // substituir o map
 
 var terminals []string
 
@@ -90,33 +100,42 @@ func isUnterminal(production string) bool {
 	return start != end
 }
 
+func getState(af AF, id string) *State {
+	for i := 0; i < len(af); i++ {
+		if af[i].Name == id {
+			return &af[i]
+		}
+	}
+	return nil
+}
+
 // impossivel dar append num array dentro de um map
 // maps são imutáveis
 // recriar a key com um novo dado pode ser uma solução
 
 func BuildAF(rules []Rule) AF {
-	af := make(AF)
+	af := make(AF, 0)
 
 	for _, rule := range rules {
-		af[rule.Name] = make(map[string][]string)
+		state := State{rule.Name, nil}
 		for _, production := range rule.Productions {
 			rstate := removeTerminals(production)
 
 			if rstate == production {
 				terminals = append(terminals, rule.Name)
 			} else {
-				simbol := removeUnterminals(production)
-				af[rule.Name][simbol] = make([]string, 0)
+				state.Production = make([]Beam, 0)
 			}
 		}
+		af = append(af, state)
 	}
 
 	for _, rule := range rules {
-		af[rule.Name] = make(map[string][]string)
+		state := getState(af, rule.Name)
 		for _, production := range rule.Productions {
 			rstate := removeTerminals(production)
 			simbol := removeUnterminals(production)
-			af[rule.Name][simbol] = append(af[rule.Name][simbol], rstate)
+			state.Production = append(state.Production, Beam{simbol, rstate})
 		}
 	}
 
@@ -126,5 +145,5 @@ func BuildAF(rules []Rule) AF {
 func main() {
 	rules := ReadRules("rules.in")
 	af := BuildAF(rules)
-	fmt.Println(af["<S>"]["a"][1])
+	fmt.Println(af[0].Production[5]) // o simbolo da ultima não está fazendo
 }
