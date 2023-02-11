@@ -67,7 +67,6 @@ func removeUnterminals(production string) string {
 func removeTerminals(production string) string {
 	var start int = 0
 	var end int = 0
-
 	for id, char := range production {
 		if char == '<' {
 			start = id
@@ -76,11 +75,9 @@ func removeTerminals(production string) string {
 			end = id
 		}
 	}
-
 	if start == end {
 		return production
 	}
-
 	return production[start : end+1]
 }
 
@@ -109,10 +106,6 @@ func getState(af AF, id string) *State {
 	return nil
 }
 
-// impossivel dar append num array dentro de um map
-// maps são imutáveis
-// recriar a key com um novo dado pode ser uma solução
-
 func BuildAF(rules []Rule) AF {
 	af := make(AF, 0)
 
@@ -120,7 +113,6 @@ func BuildAF(rules []Rule) AF {
 		state := State{rule.Name, nil}
 		for _, production := range rule.Productions {
 			rstate := removeTerminals(production)
-
 			if rstate == production {
 				terminals = append(terminals, rule.Name)
 			} else {
@@ -133,8 +125,8 @@ func BuildAF(rules []Rule) AF {
 	for _, rule := range rules {
 		state := getState(af, rule.Name)
 		for _, production := range rule.Productions {
-			rstate := removeTerminals(production)
 			simbol := removeUnterminals(production)
+			rstate := removeTerminals(production)
 			state.Production = append(state.Production, Beam{simbol, rstate})
 		}
 	}
@@ -145,5 +137,6 @@ func BuildAF(rules []Rule) AF {
 func main() {
 	rules := ReadRules("rules.in")
 	af := BuildAF(rules)
-	fmt.Println(af[0].Production[5]) // o simbolo da ultima não está fazendo
+
+	fmt.Println(af)
 }
