@@ -1,6 +1,10 @@
 package af
 
-import "github.com/namelew/automato-finito/input"
+import (
+	"fmt"
+
+	"github.com/namelew/automato-finito/input"
+)
 
 func removeUnterminals(production string) string {
 	var start int = 0
@@ -55,6 +59,15 @@ func isUnterminal(production string) bool {
 	return start != end
 }
 
+func isTerminalState(tstate string) bool {
+	for _, state := range terminals {
+		if state == tstate {
+			return true
+		}
+	}
+	return false
+}
+
 func getState(finiteAutomaton AF, id string) *State {
 	for i := 0; i < len(finiteAutomaton); i++ {
 		if finiteAutomaton[i].Name == id {
@@ -85,9 +98,32 @@ func Build(rules []input.Rule) AF {
 		for _, production := range rule.Productions {
 			simbol := removeUnterminals(production)
 			rstate := removeTerminals(production)
-			state.Production = append(state.Production, Beam{simbol, rstate})
+			if rstate == production {
+				state.Production = append(state.Production, Beam{simbol, emptyState})
+			} else {
+				state.Production = append(state.Production, Beam{simbol, rstate})
+			}
 		}
 	}
 
 	return finiteAutomaton
+}
+
+func Print(finiteAutomaton AF) {
+	for _, state := range finiteAutomaton {
+		if isTerminalState(state.Name) {
+			fmt.Printf("*%s: ", state.Name)
+		} else {
+			fmt.Printf("%s: ", state.Name)
+		}
+		npd := len(state.Production)
+		for id, production := range state.Production {
+			if id != npd-1 {
+				fmt.Printf("(%s, %s), ", production.Simbol, production.State)
+			} else {
+				fmt.Printf("(%s, %s)", production.Simbol, production.State)
+			}
+		}
+		fmt.Println()
+	}
 }
