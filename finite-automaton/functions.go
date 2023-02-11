@@ -127,3 +127,15 @@ func Print(finiteAutomaton AF) {
 		fmt.Println()
 	}
 }
+
+func Determining(finiteAutomaton AF) AF {
+	return finiteAutomaton
+}
+
+func RemovingDeathStates(finiteAutomaton AF) AF {
+	return nil
+}
+
+func RemovingUnreachebleStates(finiteAutomaton AF) AF {
+	return nil
+}
