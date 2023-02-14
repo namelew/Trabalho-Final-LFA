@@ -1,0 +1,3 @@
+<S> ::= a<A>|e<A>|i<A>|o<A>|u<A>|a<B>
+<A> ::= a<A>|e<A>|i<A>|o<A>|u<A>|epsi
+<B> ::= b
