@@ -129,6 +129,11 @@ func Print(finiteAutomaton AF) {
 }
 
 func Determining(finiteAutomaton AF) AF {
+	// achar indeterminzações
+	// criar novo estado
+	// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
+	// se um ou mais estados que geraram o novo estado for terminal, ele também será
+	// repetir esses processo para cada estado referenciado
 	return finiteAutomaton
 }
 
