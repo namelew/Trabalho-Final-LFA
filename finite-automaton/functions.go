@@ -43,6 +43,27 @@ func removeTerminals(production string) string {
 	return production[start : end+1]
 }
 
+func getIdeterminations(s State) []string {
+	var indeterminations = []string{}
+	var states string
+
+	for id,prod := range s.Production{
+		states += prod.State
+		for j := id + 1; j < len(s.Production); j++ {
+			if s.Production[j].Simbol == prod.Simbol && s.Production[j].State != prod.State {
+				states += s.Production[j].State
+			}
+		}
+
+		if len(states) > 1 {
+			indeterminations = append(indeterminations, states)
+			states = ""
+		}
+	}
+
+	return indeterminations
+}
+
 func isUnterminal(production string) bool {
 	var start int = 0
 	var end int = 0
@@ -98,6 +119,18 @@ func Build(rules []input.Rule) AF {
 		for _, production := range rule.Productions {
 			simbol := removeUnterminals(production)
 			rstate := removeTerminals(production)
+
+			notIn := true
+			for _,st := range simbols {
+				if st == simbol {
+					notIn = false
+				}
+			}
+
+			if notIn {
+				simbols = append(simbols, simbol)
+			}
+
 			if rstate == production {
 				state.Production = append(state.Production, Beam{simbol, emptyState})
 			} else {
@@ -129,12 +162,17 @@ func Print(finiteAutomaton AF) {
 }
 
 func Determining(finiteAutomaton AF) AF {
+	var Determinded AF
 	// achar indeterminzações
+	for _,state := range finiteAutomaton {
+		fmt.Println(getIdeterminations(state))
+	}
 	// criar novo estado
+
 	// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
 	// se um ou mais estados que geraram o novo estado for terminal, ele também será
 	// repetir esses processo para cada estado referenciado
-	return finiteAutomaton
+	return Determinded
 }
 
 func RemovingDeathStates(finiteAutomaton AF) AF {
