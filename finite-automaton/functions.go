@@ -2,6 +2,8 @@ package af
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/namelew/automato-finito/input"
@@ -179,27 +181,46 @@ func Build(rules []input.Rule) AF {
 	return finiteAutomaton
 }
 
-func Print(finiteAutomaton *AF) {
+func Print(fname string, finiteAutomaton *AF) {
+	f, err := os.OpenFile(fname, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	defer f.Close()
+
+	output := ""
+
 	for id := range *finiteAutomaton {
 		state := &(*finiteAutomaton)[id]
 		if isTerminalState(state.Name) {
-			fmt.Printf("*%s: ", state.Name)
+			output += fmt.Sprintf("*%s: ", state.Name)
 		} else {
-			fmt.Printf("%s: ", state.Name)
+			output += fmt.Sprintf("%s: ", state.Name)
 		}
 		npd := len(state.Production)
 		for id, production := range state.Production {
 			if id != npd-1 {
-				fmt.Printf("(%s, %s), ", production.Simbol, production.State)
+				output += fmt.Sprintf("(%s, %s), ", production.Simbol, production.State)
 			} else {
-				fmt.Printf("(%s, %s)", production.Simbol, production.State)
+				output += fmt.Sprintf("(%s, %s)", production.Simbol, production.State)
 			}
 		}
-		fmt.Println()
+		output += "\n"
 	}
+	_, err = f.Write([]byte(output))
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	defer f.Close()
 }
 
 func Determining(finiteAutomaton AF) AF {
+	ti := 0
+
 	Determinded := finiteAutomaton
 	var indeterminations []Indetermination
 
@@ -208,73 +229,84 @@ func Determining(finiteAutomaton AF) AF {
 		indeterminations = append(indeterminations, getIdeterminations(state)...)
 	}
 
-	// criar novo estado
-	for _, ind := range indeterminations {
-		sname := strings.ReplaceAll(ind.States, "<", "")
-		sname = strings.ReplaceAll(sname, ">", "")
-		state := State{"<" + sname + ">", nil}
+	ti += len(indeterminations)
 
-		isIn := func(p []Beam, key Beam) bool {
-			for _, i := range p {
-				if i == key {
-					return true
+	for ti > 0 {
+		// criar novo estado
+		for _, ind := range indeterminations {
+			sname := strings.ReplaceAll(ind.States, "<", "")
+			sname = strings.ReplaceAll(sname, ">", "")
+			state := State{"<" + sname + ">", nil}
+
+			isIn := func(p []Beam, key Beam) bool {
+				for _, i := range p {
+					if i == key {
+						return true
+					}
 				}
-			}
-			return false
-		}
-
-		removeIndetermination := func(s *State, simbol string, states string) {
-			sLefts := len(states)
-			rm := func(s []Beam, i int) []Beam {
-				s[i] = s[len(s)-1]
-				return s[:len(s)-1]
+				return false
 			}
 
-			for sLefts > 0 {
-				for id, pd := range s.Production {
-					if pd.Simbol == simbol {
-						br := false
-						for _, r := range states {
-							if pd.State == "<"+string(r)+">" {
-								s.Production = rm(s.Production, id)
-								br = true
-								sLefts--
+			removeIndetermination := func(s *State, simbol string, states string) {
+				sLefts := len(states)
+				rm := func(s []Beam, i int) []Beam {
+					s[i] = s[len(s)-1]
+					return s[:len(s)-1]
+				}
+
+				for sLefts > 0 {
+					for id, pd := range s.Production {
+						if pd.Simbol == simbol {
+							br := false
+							for _, r := range states {
+								if pd.State == "<"+string(r)+">" {
+									s.Production = rm(s.Production, id)
+									br = true
+									sLefts--
+									break
+								}
+							}
+							if br || sLefts <= 0 {
 								break
 							}
 						}
-						if br || sLefts <= 0 {
-							break
-						}
+					}
+				}
+
+				s.Production = append(s.Production, Beam{simbol, "<" + states + ">"})
+			}
+
+			// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
+			for _, s := range sname {
+				for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
+					if !isIn(state.Production, pd) {
+						state.Production = append(state.Production, pd)
 					}
 				}
 			}
 
-			s.Production = append(s.Production, Beam{simbol, "<" + states + ">"})
-		}
+			// indeterminização é removida
+			removeIndetermination(ind.Parent, ind.Simbol, sname)
+			ti--
 
-		// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
-		for _, s := range sname {
-			for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
-				if !isIn(state.Production, pd) {
-					state.Production = append(state.Production, pd)
+			// se um ou mais estados que geraram o novo estado for terminal, ele também será
+			for _, r := range sname {
+				if isTerminalState("<" + string(r) + ">") {
+					terminals = append(terminals, state.Name)
+					break
 				}
 			}
+			Determinded = append(Determinded, state)
+		}
+		// repetir esses processo para cada estado referenciado
+		indeterminations = nil
+		for id := range Determinded {
+			state := &Determinded[id]
+			indeterminations = append(indeterminations, getIdeterminations(state)...)
 		}
 
-		// indeterminização é removida
-		removeIndetermination(ind.Parent, ind.Simbol, sname)
-
-		// se um ou mais estados que geraram o novo estado for terminal, ele também será
-		for _, r := range sname {
-			if isTerminalState("<" + string(r) + ">") {
-				terminals = append(terminals, state.Name)
-				break
-			}
-		}
-		Determinded = append(Determinded, state)
+		ti += len(indeterminations)
 	}
-	// repetir esses processo para cada estado referenciado
-	fmt.Println(terminals)
 
 	return Determinded
 }

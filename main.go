@@ -9,7 +9,10 @@ func main() {
 	rules := input.ReadRules("rules.in")
 	automatoFinito := af.Build(rules)
 
-	af.Determining(automatoFinito)
+	af.Print("afnd.out", &automatoFinito)
 
-	//af.Print(automatoFinito)
+	det := af.Determining(automatoFinito)
+
+	af.Print("afd.out", &det)
+
 }
