@@ -10,4 +10,9 @@ type State struct {
 	Production []Beam
 }
 
+type Indetermination struct {
+	Simbol string
+	States string
+}
+
 type AF []State

@@ -2,6 +2,7 @@ package af
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/namelew/automato-finito/input"
 )
@@ -23,7 +24,7 @@ func removeUnterminals(production string) string {
 		return production
 	}
 
-	return production[:start] + production[end+1:]
+	return sanitaze(production[:start] + production[end+1:])
 }
 
 func removeTerminals(production string) string {
@@ -40,25 +41,57 @@ func removeTerminals(production string) string {
 	if start == end {
 		return production
 	}
-	return production[start : end+1]
+	return sanitaze(production[start : end+1])
 }
 
-func getIdeterminations(s State) []string {
-	var indeterminations = []string{}
-	var states string
+func numStates(states string) int {
+	nstate := 0
 
-	for id,prod := range s.Production{
-		states += prod.State
+	for id, state := range states {
+		if state == '<' {
+			for j := id + 1; j < len(states); j++ {
+				if states[j] == '>' {
+					nstate++
+				}
+			}
+		}
+	}
+
+	return nstate
+}
+
+func getIdeterminations(s State) []Indetermination {
+	var indeterminations = []Indetermination{}
+	var states Indetermination
+
+	isIndetermination := func(a Beam, b Beam) bool {
+		return b.Simbol == a.Simbol && a.State != b.State
+	}
+
+	isIn := func(i []Indetermination, a string) bool {
+		for _, ind := range i {
+			if ind.Simbol == a {
+				return true
+			}
+		}
+		return false
+	}
+
+	for id, prod := range s.Production {
+		states.States += prod.State
 		for j := id + 1; j < len(s.Production); j++ {
-			if s.Production[j].Simbol == prod.Simbol && s.Production[j].State != prod.State {
-				states += s.Production[j].State
+			if isIndetermination(prod, s.Production[j]) {
+				if !isIn(indeterminations, prod.Simbol) {
+					states.Simbol = prod.Simbol
+					states.States += s.Production[j].State
+				}
 			}
 		}
 
-		if len(states) > 1 {
+		if numStates(states.States) > 1 {
 			indeterminations = append(indeterminations, states)
-			states = ""
 		}
+		states.States = ""
 	}
 
 	return indeterminations
@@ -89,13 +122,14 @@ func isTerminalState(tstate string) bool {
 	return false
 }
 
-func getState(finiteAutomaton AF, id string) *State {
-	for i := 0; i < len(finiteAutomaton); i++ {
-		if finiteAutomaton[i].Name == id {
-			return &finiteAutomaton[i]
-		}
+func sanitaze(s string) string {
+	schars := []string{"\n", "\t", "\r", "\a", "\f", "\v", "\b"}
+
+	for _, char := range schars {
+		s = strings.ReplaceAll(s, char, "")
 	}
-	return nil
+
+	return s
 }
 
 func Build(rules []input.Rule) AF {
@@ -114,27 +148,20 @@ func Build(rules []input.Rule) AF {
 		finiteAutomaton = append(finiteAutomaton, state)
 	}
 
-	for _, rule := range rules {
-		state := getState(finiteAutomaton, rule.Name)
-		for _, production := range rule.Productions {
-			simbol := removeUnterminals(production)
-			rstate := removeTerminals(production)
+	for id := range finiteAutomaton {
+		state := &finiteAutomaton[id]
+		for _, rule := range rules {
+			if state.Name == rule.Name {
+				for _, production := range rule.Productions {
+					simbol := removeUnterminals(production)
+					rstate := removeTerminals(production)
 
-			notIn := true
-			for _,st := range simbols {
-				if st == simbol {
-					notIn = false
+					if rstate == production {
+						state.Production = append(state.Production, Beam{simbol, emptyState})
+					} else {
+						state.Production = append(state.Production, Beam{simbol, rstate})
+					}
 				}
-			}
-
-			if notIn {
-				simbols = append(simbols, simbol)
-			}
-
-			if rstate == production {
-				state.Production = append(state.Production, Beam{simbol, emptyState})
-			} else {
-				state.Production = append(state.Production, Beam{simbol, rstate})
 			}
 		}
 	}
@@ -163,10 +190,14 @@ func Print(finiteAutomaton AF) {
 
 func Determining(finiteAutomaton AF) AF {
 	var Determinded AF
-	// achar indeterminzações
-	for _,state := range finiteAutomaton {
-		fmt.Println(getIdeterminations(state))
+	var indeterminations []Indetermination
+
+	for _, state := range finiteAutomaton {
+		indeterminations = append(indeterminations, getIdeterminations(state)...)
 	}
+
+	fmt.Println(indeterminations)
+
 	// criar novo estado
 
 	// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
