@@ -71,6 +71,19 @@ func getState(a AF, state string) State {
 	return State{}
 }
 
+func rmName(n string) {
+	rm := func(s []string, i int) []string {
+		s[i] = s[len(s)-1]
+		return s[:len(s)-1]
+	}
+
+	for id, tn := range names {
+		if n == tn {
+			names = rm(names, id)
+		}
+	}
+}
+
 func getIdeterminations(s *State) []Indetermination {
 	var indeterminations = []Indetermination{}
 	var states Indetermination
@@ -109,22 +122,6 @@ func getIdeterminations(s *State) []Indetermination {
 	return indeterminations
 }
 
-func isUnterminal(production string) bool {
-	var start int = 0
-	var end int = 0
-
-	for id, char := range production {
-		if char == '<' {
-			start = id
-		}
-		if char == '>' {
-			end = id
-		}
-	}
-
-	return start != end
-}
-
 func isTerminalState(tstate string) bool {
 	for _, state := range terminals {
 		if state == tstate {
@@ -149,6 +146,7 @@ func Build(rules []input.Rule) AF {
 
 	for _, rule := range rules {
 		state := State{rule.Name, nil}
+		rmName(rule.Name)
 		for _, production := range rule.Productions {
 			rstate := removeTerminals(production)
 			if rstate == production {
@@ -236,7 +234,9 @@ func Determining(finiteAutomaton AF) AF {
 		for _, ind := range indeterminations {
 			sname := strings.ReplaceAll(ind.States, "<", "")
 			sname = strings.ReplaceAll(sname, ">", "")
-			state := State{"<" + sname + ">", nil}
+			state := State{"<" + names[currentName] + ">", nil}
+
+			rmName(names[currentName])
 
 			isIn := func(p []Beam, key Beam) bool {
 				for _, i := range p {
@@ -247,7 +247,7 @@ func Determining(finiteAutomaton AF) AF {
 				return false
 			}
 
-			removeIndetermination := func(s *State, simbol string, states string) {
+			removeIndetermination := func(s *State, simbol string, states string, new string) {
 				sLefts := len(states)
 				rm := func(s []Beam, i int) []Beam {
 					s[i] = s[len(s)-1]
@@ -273,7 +273,7 @@ func Determining(finiteAutomaton AF) AF {
 					}
 				}
 
-				s.Production = append(s.Production, Beam{simbol, "<" + states + ">"})
+				s.Production = append(s.Production, Beam{simbol, new})
 			}
 
 			// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
@@ -286,7 +286,7 @@ func Determining(finiteAutomaton AF) AF {
 			}
 
 			// indeterminização é removida
-			removeIndetermination(ind.Parent, ind.Simbol, sname)
+			removeIndetermination(ind.Parent, ind.Simbol, sname, state.Name)
 			ti--
 
 			// se um ou mais estados que geraram o novo estado for terminal, ele também será
@@ -304,8 +304,6 @@ func Determining(finiteAutomaton AF) AF {
 			state := &Determinded[id]
 			indeterminations = append(indeterminations, getIdeterminations(state)...)
 		}
-
-		ti += len(indeterminations)
 	}
 
 	return Determinded

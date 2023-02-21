@@ -1,6 +1,5 @@
-<S> ::= a<A>|a<D>|b<B> 
-<A> ::= a<S>|b<C>
-<B> ::= a<C>|b<S>
-<C> ::= a<B>|b<A>|b<E>
+<S> ::= a<A>|b<B>|b|c<S>|c|epsi 
+<A> ::= a<S>|a|b<C>|c<A>
+<B> ::= a<A>|c<B>|c<S>|c
+<C> ::= a<S>|a<D>|c<A>|c<C>
 <D> ::= epsi
-<E> ::= epsi
