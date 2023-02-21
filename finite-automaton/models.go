@@ -11,8 +11,10 @@ type State struct {
 }
 
 type Indetermination struct {
-	Simbol string
-	States string
+	Simbol      string
+	States      string
+	Parent      *State
+	Productions []Beam
 }
 
 type AF []State

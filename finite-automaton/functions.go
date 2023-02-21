@@ -60,7 +60,16 @@ func numStates(states string) int {
 	return nstate
 }
 
-func getIdeterminations(s State) []Indetermination {
+func getState(a AF, state string) State {
+	for _, s := range a {
+		if s.Name == state {
+			return s
+		}
+	}
+	return State{}
+}
+
+func getIdeterminations(s *State) []Indetermination {
 	var indeterminations = []Indetermination{}
 	var states Indetermination
 
@@ -84,6 +93,7 @@ func getIdeterminations(s State) []Indetermination {
 				if !isIn(indeterminations, prod.Simbol) {
 					states.Simbol = prod.Simbol
 					states.States += s.Production[j].State
+					states.Parent = s
 				}
 			}
 		}
@@ -169,8 +179,9 @@ func Build(rules []input.Rule) AF {
 	return finiteAutomaton
 }
 
-func Print(finiteAutomaton AF) {
-	for _, state := range finiteAutomaton {
+func Print(finiteAutomaton *AF) {
+	for id := range *finiteAutomaton {
+		state := &(*finiteAutomaton)[id]
 		if isTerminalState(state.Name) {
 			fmt.Printf("*%s: ", state.Name)
 		} else {
@@ -189,18 +200,41 @@ func Print(finiteAutomaton AF) {
 }
 
 func Determining(finiteAutomaton AF) AF {
-	var Determinded AF
+	Determinded := finiteAutomaton
 	var indeterminations []Indetermination
 
-	for _, state := range finiteAutomaton {
+	for id := range Determinded {
+		state := &Determinded[id]
 		indeterminations = append(indeterminations, getIdeterminations(state)...)
 	}
 
-	fmt.Println(indeterminations)
-
 	// criar novo estado
-
 	// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
+
+	for _, ind := range indeterminations {
+		sname := strings.ReplaceAll(ind.States, "<", "")
+		sname = strings.ReplaceAll(sname, ">", "")
+		state := State{sname, nil}
+
+		isIn := func(p []Beam, key Beam) bool {
+			for _, i := range p {
+				if i == key {
+					return true
+				}
+			}
+			return false
+		}
+
+		for _, s := range sname {
+			for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
+				if !isIn(state.Production, pd) {
+					state.Production = append(state.Production, pd)
+				}
+			}
+		}
+
+		fmt.Println(state.Production)
+	}
 	// se um ou mais estados que geraram o novo estado for terminal, ele também será
 	// repetir esses processo para cada estado referenciado
 	return Determinded
