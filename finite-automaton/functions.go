@@ -209,12 +209,10 @@ func Determining(finiteAutomaton AF) AF {
 	}
 
 	// criar novo estado
-	// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
-
 	for _, ind := range indeterminations {
 		sname := strings.ReplaceAll(ind.States, "<", "")
 		sname = strings.ReplaceAll(sname, ">", "")
-		state := State{sname, nil}
+		state := State{"<" + sname + ">", nil}
 
 		isIn := func(p []Beam, key Beam) bool {
 			for _, i := range p {
@@ -225,6 +223,36 @@ func Determining(finiteAutomaton AF) AF {
 			return false
 		}
 
+		removeIndetermination := func(s *State, simbol string, states string) {
+			sLefts := len(states)
+			rm := func(s []Beam, i int) []Beam {
+				s[i] = s[len(s)-1]
+				return s[:len(s)-1]
+			}
+
+			for sLefts > 0 {
+				for id, pd := range s.Production {
+					if pd.Simbol == simbol {
+						br := false
+						for _, r := range states {
+							if pd.State == "<"+string(r)+">" {
+								s.Production = rm(s.Production, id)
+								br = true
+								sLefts--
+								break
+							}
+						}
+						if br || sLefts <= 0 {
+							break
+						}
+					}
+				}
+			}
+
+			s.Production = append(s.Production, Beam{simbol, "<" + states + ">"})
+		}
+
+		// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
 		for _, s := range sname {
 			for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
 				if !isIn(state.Production, pd) {
@@ -233,10 +261,21 @@ func Determining(finiteAutomaton AF) AF {
 			}
 		}
 
-		fmt.Println(state.Production)
+		// indeterminização é removida
+		removeIndetermination(ind.Parent, ind.Simbol, sname)
+
+		// se um ou mais estados que geraram o novo estado for terminal, ele também será
+		for _, r := range sname {
+			if isTerminalState("<" + string(r) + ">") {
+				terminals = append(terminals, state.Name)
+				break
+			}
+		}
+		Determinded = append(Determinded, state)
 	}
-	// se um ou mais estados que geraram o novo estado for terminal, ele também será
 	// repetir esses processo para cada estado referenciado
+	fmt.Println(terminals)
+
 	return Determinded
 }
 
