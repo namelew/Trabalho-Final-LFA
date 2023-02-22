@@ -222,6 +222,7 @@ func Determining(finiteAutomaton AF) AF {
 
 	Determinded := finiteAutomaton
 	var indeterminations []Indetermination
+	var log AF
 
 	for id := range Determinded {
 		state := &Determinded[id]
@@ -229,8 +230,29 @@ func Determining(finiteAutomaton AF) AF {
 	}
 
 	ti += len(indeterminations)
+	intr := 0
 
 	for ti > 0 {
+		enqueu := func (a AF, s State) AF{
+			in := func(a AF, key State) (bool, int) {
+				for id, st := range a {
+					if st.Name == key.Name {
+						return true, id
+					}
+				}
+				return false,-1
+			}
+
+			exists,id := in(a, s)
+
+			if exists {
+				a[id] = s
+			} else {
+				return append(a, s)
+			}
+
+			return a
+		}
 		// criar novo estado
 		for _, ind := range indeterminations {
 			sname := strings.ReplaceAll(ind.States, "<", "")
@@ -306,6 +328,7 @@ func Determining(finiteAutomaton AF) AF {
 
 			// indeterminização é removida
 			removeIndetermination(ind.Parent, ind.Simbol, sname, state.Name)
+			log = enqueu(log, *ind.Parent)
 			ti--
 
 			// se um ou mais estados que geraram o novo estado for terminal, ele também será
@@ -317,15 +340,20 @@ func Determining(finiteAutomaton AF) AF {
 			}
 			Determinded = append(Determinded, state)
 		}
+		for _,state := range log {
+			Determinded = enqueu(Determinded, state)
+		}
 		// repetir esses processo para cada estado referenciado
 		// problema com estados duplicados após remoção de indeterminizações
 		indeterminations = nil
+		log = nil
 		for id := range Determinded {
 			state := &Determinded[id]
 			indeterminations = append(indeterminations, getIdeterminations(state)...)
 		}
 		ti += len(indeterminations)
-		Print(fmt.Sprintf("%d.out", ti%100), &Determinded)
+		Print(fmt.Sprintf("%d.out", intr%100), &Determinded)
+		intr++
 	}
 
 	return Determinded
