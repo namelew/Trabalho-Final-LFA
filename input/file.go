@@ -1,67 +1,50 @@
 package input
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
 )
 
-// var Names = []string{
-// 	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "K", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-// 	"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "k", "r", "s", "t", "u", "v", "w", "x", "y", "z",
-// 	"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "/", "!", "@", "#","$", "%", "&", "*", "+", "=", "?", "|",
-// }
+var Names = []string{
+	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "K", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+	"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "k", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+	"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "/", "!", "@", "#","$", "%", "&", "*", "+", "=", "?",
+}
 
 type Rule struct {
 	Name        string
 	Productions []string
 }
 
-// func strDiff(a string, b string) string {
-// 	la := len(a)
-// 	lb := len(b)
-// 	diff := ""
-
-// 	if lb > la {
-// 		return strDiff(b, a)
-// 	}
-
-// 	for id, r := range b {
-// 		if string(r) == string(a[id]) {
-// 			diff += string(r)
-// 		}
-// 	}
-
-// 	return diff
-// }
-
 func ReadRules(filename string) []Rule {
 	rules := make([]Rule, 0, 10)
 
 	data, err := os.ReadFile("rules.in")
 
-	// unames := Names
-	// pop := func () string{
-	// 	n := unames[0]
-	// 	unames = unames[1:]
-	// 	return n
-	// }
+	unames := Names
+	pop := func () string{
+		n := unames[0]
+		unames = unames[1:]
+		return n
+	}
 
-	// rm := func (s string) []string {
-	// 	id := -1
-	// 	for i,n := range unames {
-	// 		if n == s {
-	// 			id = i
-	// 		}
-	// 	}
+	rm := func (s string) []string {
+		id := -1
+		for i,n := range unames {
+			if n == s {
+				id = i
+			}
+		}
 
-	// 	if id != -1 {
-	// 		unames[id] = unames[len(unames) - 1]
-	// 		return unames[:len(unames)-1]
-	// 	}
+		if id != -1 {
+			unames[id] = unames[len(unames) - 1]
+			return unames[:len(unames)-1]
+		}
 
-	// 	return unames
-	// }
+		return unames
+	}
 
 	if err != nil {
 		log.Fatal(err.Error())
@@ -78,35 +61,53 @@ func ReadRules(filename string) []Rule {
 		pline := strings.Replace(line, " ", "", -1)
 		ruleLine := strings.Split(pline, "::=")
 		rules = append(rules, Rule{ruleLine[0], strings.Split(ruleLine[1], "|")})
-		//n := strings.ReplaceAll(ruleLine[0], "<", "")
-		//n = strings.ReplaceAll(n, ">", "")
-		//unames = rm(n)
+		n := strings.ReplaceAll(ruleLine[0], "<", "")
+		n = strings.ReplaceAll(n, ">", "")
+		unames = rm(n)
 	}
 
-	// lines := strings.Split(rtokens,"\n")
-	// var rw []Rule
+	lines := strings.Split(rtokens,"\n")
+	var rw []Rule
 
-	// for _,line := range lines{
-	// 	if line == ""{
-	// 		continue
-	// 	}
-	// 	rw = append(rw, Rule{"<"+pop()+">", []string{line}})
-	// }
+	for _,line := range lines{
+		if line == ""{
+			continue
+		}
+		var afstate string
+		for id,r := range line {
+			created := func (s string) (bool, int, string) {
+				for _,rl := range rw {
+					if s == string(rl.Productions[0][0]) {
+						return true,len(rl.Productions),rl.Productions[0][1:]
+					}
+				}
+				return false,-1,""
+			}
 
-	// var prev Rule = Rule{"", []string{}}
-	// for id, v := range rw {
-	// 	if prev.Name != "" {
-	// 		diff := strDiff(prev.Productions[0], v.Productions[0])
-	// 		if diff != "" {
-	// 			r := Rule{"<"+pop()+">", []string{string(v.Productions[0][0]) + v.Name}}
-	// 			rw[id].Productions[0] = rw[id].Productions[0][1:] 
-	// 			rw = append(rw, r)
-	// 		}
-	// 	}
-	// 	prev = v
-	// }
+			yes,tam,nrl := created(string(r)) 
 
-	// Names = nil
+			if !yes && id < len(line) - 1{
+				if afstate == "" {
+					afstate = "<"+pop()+">"
+					rw = append(rw, Rule{"<"+pop()+">", []string{string(r)+afstate}})
+				} else {
+					n := afstate
+					afstate = "<"+pop()+">"
+					if id == len(line) - 2 {
+						rw = append(rw, Rule{n, []string{string(r)+afstate, string(r)}})
+					} else {
+						rw = append(rw, Rule{n, []string{string(r)+afstate}})
+					}
+				}
+			} else if yes && tam > 1 {
+				afstate = nrl
+			}
+		}
+	}
+
+	fmt.Println(rw)
+
+	Names = nil
 
 	return rules
 }
