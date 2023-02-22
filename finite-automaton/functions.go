@@ -145,8 +145,10 @@ func Build(rules []input.Rule) AF {
 	finiteAutomaton := make(AF, 0)
 
 	for _, rule := range rules {
-		state := State{rule.Name, nil}
-		rmName(rule.Name)
+		state := State{sanitaze(rule.Name), nil}
+		sname := strings.ReplaceAll(rule.Name, "<", "")
+		sname = strings.ReplaceAll(sname, ">", "")
+		rmName(sname)
 		for _, production := range rule.Productions {
 			rstate := removeTerminals(production)
 			if rstate == production {
@@ -157,7 +159,6 @@ func Build(rules []input.Rule) AF {
 		}
 		finiteAutomaton = append(finiteAutomaton, state)
 	}
-
 	for id := range finiteAutomaton {
 		state := &finiteAutomaton[id]
 		for _, rule := range rules {
@@ -167,9 +168,9 @@ func Build(rules []input.Rule) AF {
 					rstate := removeTerminals(production)
 
 					if rstate == production {
-						state.Production = append(state.Production, Beam{simbol, emptyState})
+						state.Production = append(state.Production, Beam{sanitaze(simbol), sanitaze(emptyState)})
 					} else {
-						state.Production = append(state.Production, Beam{simbol, rstate})
+						state.Production = append(state.Production, Beam{sanitaze(simbol), sanitaze(rstate)})
 					}
 				}
 			}
@@ -279,7 +280,7 @@ func Determining(finiteAutomaton AF) AF {
 			// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
 			for _, s := range sname {
 				for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
-					if !isIn(state.Production, pd) {
+					if !isIn(state.Production, Beam{sanitaze(pd.Simbol), sanitaze(pd.State)}){
 						state.Production = append(state.Production, pd)
 					}
 				}
