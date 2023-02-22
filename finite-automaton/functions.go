@@ -86,9 +86,9 @@ func rmName(n string) {
 		return s[:len(s)-1]
 	}
 
-	for id, tn := range names {
+	for id, tn := range Names {
 		if n == tn {
-			names = rm(names, id)
+			Names = rm(Names, id)
 		}
 	}
 }
@@ -299,9 +299,9 @@ func Determining(finiteAutomaton AF) AF {
 			}
 
 			if sn := solvedState(Determinded, inder); sn == emptyState {
-				state = State{"<" + names[currentName] + ">", sanitaze(ind.Simbol + " " + sname), nil}
+				state = State{"<" + Names[currentName] + ">", sanitaze(ind.Simbol + " " + sname), nil}
 
-				rmName(names[currentName])
+				rmName(Names[currentName])
 
 				isIn := func(p []Beam, key Beam) bool {
 					for _, i := range p {

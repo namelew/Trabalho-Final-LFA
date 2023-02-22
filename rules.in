@@ -1,3 +1,7 @@
+se
+senao
+entao
+--
 <S> ::= a<A>|b<B>|b|c<S>|c|epsi 
 <A> ::= a<S>|a|b<C>|c<A>
 <B> ::= a<A>|c<B>|c<S>|c
