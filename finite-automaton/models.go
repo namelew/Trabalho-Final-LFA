@@ -7,6 +7,7 @@ type Beam struct {
 
 type State struct {
 	Name       string
+	Ind 	   string
 	Production []Beam
 }
 

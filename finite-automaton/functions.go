@@ -71,6 +71,15 @@ func getState(a AF, state string) State {
 	return State{}
 }
 
+func solvedState(a AF, inder string) string {
+	for _,s := range a {
+		if s.Ind == inder {
+			return s.Name
+		}
+	}
+	return emptyState
+}
+
 func rmName(n string) {
 	rm := func(s []string, i int) []string {
 		s[i] = s[len(s)-1]
@@ -145,7 +154,7 @@ func Build(rules []input.Rule) AF {
 	finiteAutomaton := make(AF, 0)
 
 	for _, rule := range rules {
-		state := State{sanitaze(rule.Name), nil}
+		state := State{sanitaze(rule.Name), "",nil}
 		sname := strings.ReplaceAll(rule.Name, "<", "")
 		sname = strings.ReplaceAll(sname, ">", "")
 		rmName(sname)
@@ -255,20 +264,11 @@ func Determining(finiteAutomaton AF) AF {
 		}
 		// criar novo estado
 		for _, ind := range indeterminations {
+			var state State
 			sname := strings.ReplaceAll(ind.States, "<", "")
 			sname = strings.ReplaceAll(sname, ">", "")
-			state := State{"<" + names[currentName] + ">", nil}
 
-			rmName(names[currentName])
-
-			isIn := func(p []Beam, key Beam) bool {
-				for _, i := range p {
-					if i == key {
-						return true
-					}
-				}
-				return false
-			}
+			inder := sanitaze(ind.Simbol + " " + sname)
 
 			removeIndetermination := func(s *State, simbol string, states string, new string) {
 				sLefts := len(states)
@@ -299,31 +299,48 @@ func Determining(finiteAutomaton AF) AF {
 				s.Production = append(s.Production, Beam{simbol, new})
 			}
 
-			// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
-			for _, s := range sname {
-				if s != '-' {
-					for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
-						if !isIn(state.Production, Beam{sanitaze(pd.Simbol), sanitaze(pd.State)}){
-							state.Production = append(state.Production, pd)
+			if sn := solvedState(Determinded, inder); sn == emptyState {
+				state = State{"<" + names[currentName] + ">", sanitaze(ind.Simbol + " " + sname), nil}
+
+				rmName(names[currentName])
+
+				isIn := func(p []Beam, key Beam) bool {
+					for _, i := range p {
+						if i == key {
+							return true
+						}
+					}
+					return false
+				}
+
+				// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
+				for _, s := range sname {
+					if s != '-' {
+						for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
+							if !isIn(state.Production, Beam{sanitaze(pd.Simbol), sanitaze(pd.State)}){
+								state.Production = append(state.Production, pd)
+							}
 						}
 					}
 				}
-			}
 
-			for _,s := range sname {
-				if s == '-' {
-					haveTerminal := false
-					
-					for _,pd := range state.Production {
-						if pd.State == "-" {
-							haveTerminal = true
+				for _,s := range sname {
+					if s == '-' {
+						haveTerminal := false
+						
+						for _,pd := range state.Production {
+							if pd.State == "-" {
+								haveTerminal = true
+							}
+						}
+
+						if !haveTerminal {
+							state.Production = append(state.Production, Beam{sanitaze("epsi"), sanitaze("-")})
 						}
 					}
-
-					if !haveTerminal {
-						state.Production = append(state.Production, Beam{sanitaze("epsi"), sanitaze("-")})
-					}
 				}
+			} else {
+				state = getState(Determinded, sn)
 			}
 
 			// indeterminização é removida
@@ -338,8 +355,9 @@ func Determining(finiteAutomaton AF) AF {
 					break
 				}
 			}
-			Determinded = append(Determinded, state)
+			Determinded = enqueu(Determinded, state)
 		}
+		// corrigir erro de estados com transições duplicadas
 		for _,state := range log {
 			Determinded = enqueu(Determinded, state)
 		}
