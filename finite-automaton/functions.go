@@ -176,10 +176,23 @@ func Build(rules []input.Rule) AF {
 					simbol := removeUnterminals(production)
 					rstate := removeTerminals(production)
 
+					simbol = sanitaze(simbol)
+
+					if func(s string) bool{
+						for _,ts := range simbols {
+							if s == ts {
+								return false
+							}
+						}
+						return true
+					} (simbol) && simbol != "epsi"{
+						simbols = append(simbols, simbol)
+					}
+
 					if rstate == production {
-						state.Production = append(state.Production, Beam{sanitaze(simbol), sanitaze(emptyState)})
+						state.Production = append(state.Production, Beam{simbol, sanitaze(emptyState)})
 					} else {
-						state.Production = append(state.Production, Beam{sanitaze(simbol), sanitaze(rstate)})
+						state.Production = append(state.Production, Beam{simbol, sanitaze(rstate)})
 					}
 				}
 			}
@@ -196,24 +209,38 @@ func Print(fname string, finiteAutomaton *AF) {
 		log.Fatal(err.Error())
 	}
 
-	defer f.Close()
+	output := "\t\t"
 
-	output := ""
+	ns := len(simbols)
+
+	for id,s := range simbols {
+		if id != ns-1 {
+			output += fmt.Sprintf("|    %s    ", s)
+		} else {
+			output += fmt.Sprintf("|    %s    |\n", s)
+		}
+	}
 
 	for id := range *finiteAutomaton {
 		state := &(*finiteAutomaton)[id]
 		if isTerminalState(state.Name) {
-			output += fmt.Sprintf("*%s: ", state.Name)
+			output += fmt.Sprintf("| *%s  |", state.Name)
 		} else {
-			output += fmt.Sprintf("%s: ", state.Name)
+			output += fmt.Sprintf("|  %s  |", state.Name)
 		}
-		npd := len(state.Production)
-		for id, production := range state.Production {
-			if id != npd-1 {
-				output += fmt.Sprintf("(%s, %s), ", production.Simbol, production.State)
-			} else {
-				output += fmt.Sprintf("(%s, %s)", production.Simbol, production.State)
+		//npd := len(state.Production)
+		for _,simbol := range simbols {
+			sts := "   "
+			for _, production := range state.Production {
+				if production.Simbol == simbol && production.State != emptyState{
+					sts += production.State
+				}
 			}
+			if len(sts) < 4 {
+				sts += "   "
+			}
+			sts += "   |"
+			output += sts
 		}
 		output += "\n"
 	}
