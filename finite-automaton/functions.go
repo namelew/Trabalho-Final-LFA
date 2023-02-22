@@ -239,7 +239,6 @@ func Determining(finiteAutomaton AF) AF {
 	}
 
 	ti += len(indeterminations)
-	intr := 0
 
 	for ti > 0 {
 		enqueu := func (a AF, s State) AF{
@@ -370,8 +369,6 @@ func Determining(finiteAutomaton AF) AF {
 			indeterminations = append(indeterminations, getIdeterminations(state)...)
 		}
 		ti += len(indeterminations)
-		Print(fmt.Sprintf("%d.out", intr%100), &Determinded)
-		intr++
 	}
 
 	return Determinded
