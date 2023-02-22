@@ -260,7 +260,7 @@ func Determining(finiteAutomaton AF) AF {
 						if pd.Simbol == simbol {
 							br := false
 							for _, r := range states {
-								if pd.State == "<"+string(r)+">" {
+								if pd.State == sanitaze(emptyState) || pd.State == "<"+string(r)+">" {
 									s.Production = rm(s.Production, id)
 									br = true
 									sLefts--
@@ -279,9 +279,27 @@ func Determining(finiteAutomaton AF) AF {
 
 			// novo estado herda a combinação das produções dos estados que antes gerava a interdeminização
 			for _, s := range sname {
-				for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
-					if !isIn(state.Production, Beam{sanitaze(pd.Simbol), sanitaze(pd.State)}){
-						state.Production = append(state.Production, pd)
+				if s != '-' {
+					for _, pd := range getState(Determinded, "<"+string(s)+">").Production {
+						if !isIn(state.Production, Beam{sanitaze(pd.Simbol), sanitaze(pd.State)}){
+							state.Production = append(state.Production, pd)
+						}
+					}
+				}
+			}
+
+			for _,s := range sname {
+				if s == '-' {
+					haveTerminal := false
+					
+					for _,pd := range state.Production {
+						if pd.State == "-" {
+							haveTerminal = true
+						}
+					}
+
+					if !haveTerminal {
+						state.Production = append(state.Production, Beam{sanitaze("epsi"), sanitaze("-")})
 					}
 				}
 			}
@@ -300,11 +318,14 @@ func Determining(finiteAutomaton AF) AF {
 			Determinded = append(Determinded, state)
 		}
 		// repetir esses processo para cada estado referenciado
+		// problema com estados duplicados após remoção de indeterminizações
 		indeterminations = nil
 		for id := range Determinded {
 			state := &Determinded[id]
 			indeterminations = append(indeterminations, getIdeterminations(state)...)
 		}
+		ti += len(indeterminations)
+		Print(fmt.Sprintf("%d.out", ti%100), &Determinded)
 	}
 
 	return Determinded
