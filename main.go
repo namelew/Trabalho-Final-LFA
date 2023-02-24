@@ -14,5 +14,4 @@ func main() {
 	det := af.Determining(automatoFinito)
 
 	af.Print("afd.out", &det)
-
 }
