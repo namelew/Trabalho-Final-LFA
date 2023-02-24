@@ -221,6 +221,19 @@ func Print(fname string, finiteAutomaton *AF) {
 		}
 	}
 
+	emptyStr := 0
+	for emptyStr != -1 {
+		emptyStr = -1
+		for id,simbol := range simbols {
+			if sanitaze(simbol) == "" {
+				emptyStr = id
+			}
+		}
+		if emptyStr != -1 {
+			simbols = append(simbols[:emptyStr], simbols[emptyStr+1:]...)
+		}
+	}
+
 	for id := range *finiteAutomaton {
 		state := &(*finiteAutomaton)[id]
 		if isTerminalState(state.Name) {
@@ -228,7 +241,7 @@ func Print(fname string, finiteAutomaton *AF) {
 		} else {
 			output += fmt.Sprintf("|  %s  |", state.Name)
 		}
-		//npd := len(state.Production)
+
 		for _,simbol := range simbols {
 			sts := "      "
 			for _, production := range state.Production {
@@ -244,13 +257,6 @@ func Print(fname string, finiteAutomaton *AF) {
 
 			if lsts > 16 {
 				overlap := lsts - 16
-
-				// abs := func (i int) int{
-				//   	if i < 0 {
-				// 		return i * -1
-				// 	}
-				// 	return i
-				// }
 
 				if overlap%2 == 0 {
 					overlap = overlap/2
