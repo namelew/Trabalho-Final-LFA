@@ -1,7 +1,6 @@
 package input
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -58,48 +57,34 @@ func readGR(unames *[]string,entry string) []Rule{
 	return rules
 }
 
-func readTokens(unames *[]string,entry string) []Rule{
+func readTokens(grules []Rule,unames *[]string,entry string) []Rule{
 	var rules []Rule
 
 	lines := strings.Split(entry,"\n")
 
-	for _,line := range lines{
-		if line == ""{
-			continue
-		}
-		var afstate string
-		for id,r := range line {
-			created := func (s string) (bool, int, string) {
-				for _,rl := range rules {
-					if s == string(rl.Productions[0][0]) {
-						return true,len(rl.Productions),rl.Productions[0][1:]
-					}
-				}
-				return false,-1,""
-			}
-
-			yes,tam,nrl := created(string(r)) 
-
-			if !yes && id < len(line) - 1{
-				if afstate == "" {
-					afstate = "<"+pop(unames)+">"
-					rules = append(rules, Rule{"<"+pop(unames)+">", []string{string(r)+afstate}})
+	for _,line := range lines {
+		if line != "" {
+			lastToken := len(line) - 1
+			var lastRule string
+			for id,token := range line {
+				if id == 0 {
+					rname := pop(unames)
+					grules[0].Productions = append(grules[0].Productions, string(token)+"<"+rname+">")
+					lastRule = rname
+				} else if id == lastToken{
+					rules = append(rules, Rule{"<"+lastRule+">", []string{string(token)}})
 				} else {
-					n := afstate
-					afstate = "<"+pop(unames)+">"
-					if id == len(line) - 2 {
-						rules = append(rules, Rule{n, []string{string(r)+afstate, string(r)}})
-					} else {
-						rules = append(rules, Rule{n, []string{string(r)+afstate}})
-					}
+					rname := pop(unames)
+					rules = append(rules, Rule{"<"+lastRule+">", []string{string(token)+"<"+rname+">"}})
+					lastRule = rname
 				}
-			} else if yes && tam > 1 {
-				afstate = nrl
 			}
 		}
 	}
 
-	return rules
+	grules = append(grules, rules...)
+
+	return grules
 }
 
 func ReadRules(filename string) []Rule {
@@ -115,7 +100,7 @@ func ReadRules(filename string) []Rule {
 
 	rules := readGR(&unames, gr)
 
-	fmt.Println(readTokens(&unames, rtokens))
+	rules = readTokens(rules, &unames, rtokens)
 
 	Names = nil
 
