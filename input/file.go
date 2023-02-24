@@ -18,43 +18,30 @@ type Rule struct {
 	Productions []string
 }
 
-func ReadRules(filename string) []Rule {
-	rules := make([]Rule, 0, 10)
+func pop (s *[]string) string{
+	n := (*s)[0]
+	*s = (*s)[1:]
+	return n
+}
 
-	data, err := os.ReadFile("rules.in")
-
-	unames := Names
-	pop := func () string{
-		n := unames[0]
-		unames = unames[1:]
-		return n
-	}
-
-	rm := func (s string) []string {
-		id := -1
-		for i,n := range unames {
-			if n == s {
-				id = i
-			}
+func rm (sl []string,s string) []string {
+	id := -1
+	for i,n := range sl {
+		if n == s {
+			id = i
 		}
-
-		if id != -1 {
-			unames[id] = unames[len(unames) - 1]
-			return unames[:len(unames)-1]
-		}
-
-		return unames
 	}
 
-	if err != nil {
-		log.Fatal(err.Error())
+	if id != -1 {
+		sl[id] = sl[len(sl) - 1]
+		return sl[:len(sl)-1]
 	}
-	temp := strings.Split(string(data), "--")
-	rtokens,gr := temp[0],temp[1] 
 
-	rtokens += ""
+	return sl
+}
 
-	for _, line := range strings.Split(gr, "\n") {
+func readGR(rules []Rule, unames *[]string,entry string) []Rule{
+	for _, line := range strings.Split(entry, "\n") {
 		if len(line) < 2{
 			continue
 		}
@@ -63,8 +50,26 @@ func ReadRules(filename string) []Rule {
 		rules = append(rules, Rule{ruleLine[0], strings.Split(ruleLine[1], "|")})
 		n := strings.ReplaceAll(ruleLine[0], "<", "")
 		n = strings.ReplaceAll(n, ">", "")
-		unames = rm(n)
+		*unames = rm(*unames, n)
 	}
+
+	return rules
+}
+
+func ReadRules(filename string) []Rule {
+	rules := make([]Rule, 0, 10)
+
+	data, err := os.ReadFile("rules.in")
+
+	unames := Names
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	temp := strings.Split(string(data), "--")
+	rtokens,gr := temp[0],temp[1] 
+
+	rules = readGR(rules, &unames, gr)
 
 	lines := strings.Split(rtokens,"\n")
 	var rw []Rule
@@ -88,11 +93,11 @@ func ReadRules(filename string) []Rule {
 
 			if !yes && id < len(line) - 1{
 				if afstate == "" {
-					afstate = "<"+pop()+">"
-					rw = append(rw, Rule{"<"+pop()+">", []string{string(r)+afstate}})
+					afstate = "<"+pop(&unames)+">"
+					rw = append(rw, Rule{"<"+pop(&unames)+">", []string{string(r)+afstate}})
 				} else {
 					n := afstate
-					afstate = "<"+pop()+">"
+					afstate = "<"+pop(&unames)+">"
 					if id == len(line) - 2 {
 						rw = append(rw, Rule{n, []string{string(r)+afstate, string(r)}})
 					} else {
