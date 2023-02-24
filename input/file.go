@@ -95,7 +95,7 @@ func ReadRules(filename string) []Rule {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	temp := strings.Split(string(data), "--")
+	temp := strings.Split(strings.ReplaceAll(string(data), " ", ""), "--")
 	rtokens,gr := temp[0],temp[1] 
 
 	rules := readGR(&unames, gr)
